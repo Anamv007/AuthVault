@@ -1,1 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AuthVault — Secure Authentication</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0e0f11;
+  --ink2: #1a1c20;
+  --ink3: #252830;
+  --border: #2e3138;
+  --muted: #5a6070;
+  --text: #c8cdd8;
+  --white: #eef0f5;
+  --gold: #d4a843;
+  --gold2: #f0c96a;
+  --gold-glow: rgba(212,168,67,0.15);
+  --red: #e05555;
+  --green: #4caf85;
+  --blue: #5b8dee;
+  --serif: 'Instrument Serif', serif;
+  --mono: 'DM Mono', monospace;
+  --sans: 'Outfit', sans-serif;
+  --r: 12px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── BACKGROUND TEXTURE ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 0%, rgba(212,168,67,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 80% 100%, rgba(91,141,238,0.05) 0%, transparent 60%);
+  pointer-events: none; z-index: 0;
+}
+
+/* ── LAYOUT ── */
+.app { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; }
+
+/* ── NAV ── */
+nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 40px;
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  background: rgba(14,15,17,0.8);
+  position: sticky; top: 0; z-index: 100;
+}
+
+.nav-brand {
+  font-family: var(--serif);
+  font-size: 22px;
+  color: var(--white);
+  letter-spacing: -0.01em;
+  display: flex; align-items: center; gap: 10px;
+}
+
+.brand-lock {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  box-shadow: 0 4px 14px rgba(212,168,67,0.3);
+}
+
+.nav-status {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+}
+
+.status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--muted);
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.status-dot.online { background: var(--green); box-shadow: 0 0 8px var(--green); }
+
+/* ── MAIN ── */
+main {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 40px 20px;
+}
+
+/* ── PAGES ── */
+.page { display: none; width: 100%; max-width: 440px; animation: slideIn 0.35s ease; }
+.page.active { display: block; }
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── AUTH CARD ── */
+.auth-card {
+  background: var(--ink2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-card::before {
+  content: '';
+  position: absolute; top: 0; left: 10%; right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0.4;
+}
+
+.auth-eyebrow {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--gold);
+  margin-bottom: 10px;
+}
+
+.auth-title {
+  font-family: var(--serif); font-size: 32px; color: var(--white);
+  line-height: 1.1; margin-bottom: 6px;
+}
+
+.auth-title em { font-style: italic; color: var(--gold2); }
+
+.auth-subtitle {
+  font-size: 13px; color: var(--muted); margin-bottom: 32px; line-height: 1.5;
+}
+
+/* ── FORM ── */
+.form-group { margin-bottom: 18px; }
+
+label {
+  display: block; font-size: 12px; font-weight: 500;
+  color: var(--muted); letter-spacing: 0.05em; margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.input-wrap { position: relative; }
+
+input[type="text"], input[type="email"], input[type="password"], input[type="tel"] {
+  width: 100%;
+  background: var(--ink3);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 13px 16px;
+  font-family: var(--sans); font-size: 14px; color: var(--white);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(212,168,67,0.12);
+  background: var(--ink);
+}
+
+input.error { border-color: var(--red); box-shadow: 0 0 0 3px rgba(224,85,85,0.1); }
+input.success { border-color: var(--green); }
+
+.input-icon {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  font-size: 15px; cursor: pointer; color: var(--muted);
+  transition: color 0.2s; user-select: none;
+}
+.input-icon:hover { color: var(--gold); }
+
+.field-error {
+  font-family: var(--mono); font-size: 11px; color: var(--red);
+  margin-top: 6px; display: none;
+}
+.field-error.show { display: block; }
+
+/* ── PASSWORD STRENGTH ── */
+.pw-strength { margin-top: 8px; }
+.pw-bars { display: flex; gap: 4px; margin-bottom: 4px; }
+.pw-bar {
+  flex: 1; height: 3px; border-radius: 2px;
+  background: var(--border); transition: background 0.3s;
+}
+.pw-label { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
+/* ── BUTTONS ── */
+.btn {
+  width: 100%; padding: 14px;
+  border: none; border-radius: var(--r);
+  font-family: var(--sans); font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; letter-spacing: 0.02em;
+  position: relative; overflow: hidden;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold2) 100%);
+  color: #000;
+  box-shadow: 0 4px 20px rgba(212,168,67,0.25);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 28px rgba(212,168,67,0.35);
+}
+
+.btn-primary:active { transform: translateY(0); }
+
+.btn-primary.loading { pointer-events: none; opacity: 0.75; }
+
+.btn-ghost {
+  background: transparent; color: var(--gold);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { border-color: var(--gold); background: var(--gold-glow); }
+
+.btn-danger {
+  background: rgba(224,85,85,0.1); color: var(--red);
+  border: 1px solid rgba(224,85,85,0.2);
+}
+.btn-danger:hover { background: rgba(224,85,85,0.18); }
+
+.btn + .btn { margin-top: 10px; }
+
+/* ── DIVIDER ── */
+.divider {
+  display: flex; align-items: center; gap: 12px;
+  margin: 24px 0; color: var(--muted); font-size: 12px;
+}
+.divider::before, .divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* ── LINK TEXT ── */
+.link-text {
+  text-align: center; font-size: 13px; color: var(--muted); margin-top: 20px;
+}
+.link-text a { color: var(--gold); text-decoration: none; font-weight: 500; cursor: pointer; }
+.link-text a:hover { color: var(--gold2); }
+
+/* ── TOAST ── */
+#toast {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--ink3); border: 1px solid var(--border);
+  border-radius: 100px; padding: 10px 22px;
+  font-family: var(--mono); font-size: 12px; color: var(--text);
+  opacity: 0; transition: all 0.3s; z-index: 9999;
+  white-space: nowrap; pointer-events: none;
+  display: flex; align-items: center; gap: 8px;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.toast-success { border-color: rgba(76,175,133,0.4); color: var(--green); }
+#toast.toast-error   { border-color: rgba(224,85,85,0.4); color: var(--red); }
+#toast.toast-info    { border-color: rgba(212,168,67,0.4); color: var(--gold); }
+
+/* ── 2FA PAGE ── */
+.otp-wrap { display: flex; gap: 10px; justify-content: center; margin: 24px 0; }
+.otp-input {
+  width: 52px; height: 60px;
+  background: var(--ink3); border: 1px solid var(--border);
+  border-radius: var(--r); text-align: center;
+  font-family: var(--mono); font-size: 24px; font-weight: 500; color: var(--white);
+  outline: none; transition: all 0.2s;
+}
+.otp-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212,168,67,0.12); }
+
+.otp-timer {
+  text-align: center; font-family: var(--mono); font-size: 12px;
+  color: var(--muted); margin-bottom: 20px;
+}
+.otp-timer span { color: var(--gold); }
+
+/* ── DASHBOARD ── */
+#dashboard-page { max-width: 900px; }
+
+.dash-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 32px; flex-wrap: gap;
+}
+
+.dash-welcome {
+  font-family: var(--serif); font-size: 28px; color: var(--white);
+}
+.dash-welcome em { font-style: italic; color: var(--gold2); }
+
+.dash-meta {
+  font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 4px;
+}
+
+.logout-btn {
+  background: transparent; border: 1px solid var(--border);
+  border-radius: 10px; padding: 8px 16px;
+  font-family: var(--sans); font-size: 12px; color: var(--muted);
+  cursor: pointer; transition: all 0.2s;
+}
+.logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* ── SECURITY CARDS GRID ── */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px; margin-bottom: 28px;
+}
+
+.sec-card {
+  background: var(--ink2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 22px;
+  transition: border-color 0.2s, transform 0.2s;
+  animation: fadeUp 0.4s ease both;
+}
+.sec-card:hover { border-color: rgba(212,168,67,0.25); transform: translateY(-2px); }
+
+.sec-card-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+  margin-bottom: 14px;
+}
+.icon-gold  { background: rgba(212,168,67,0.12); }
+.icon-blue  { background: rgba(91,141,238,0.12); }
+.icon-green { background: rgba(76,175,133,0.12); }
+.icon-red   { background: rgba(224,85,85,0.12); }
+
+.sec-card h3 { font-size: 14px; font-weight: 600; color: var(--white); margin-bottom: 4px; }
+.sec-card p  { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+.sec-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--mono); font-size: 10px;
+  padding: 3px 9px; border-radius: 100px; margin-top: 10px;
+}
+.badge-enabled { background: rgba(76,175,133,0.1); color: var(--green); }
+.badge-disabled { background: rgba(224,85,85,0.1); color: var(--red); }
+.badge-active  { background: rgba(212,168,67,0.1); color: var(--gold); }
+
+/* ── TABS ── */
+.tabs { display: flex; gap: 4px; margin-bottom: 24px; background: var(--ink3); border-radius: var(--r); padding: 4px; }
+.tab-btn {
+  flex: 1; padding: 9px; border: none; border-radius: 9px;
+  background: transparent; color: var(--muted);
+  font-family: var(--sans); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s;
+}
+.tab-btn.active { background: var(--ink2); color: var(--white); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+
+.tab-panel { display: none; animation: fadeUp 0.3s ease; }
+.tab-panel.active { display: block; }
+
+/* ── PROFILE SECTION ── */
+.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+.avatar-row {
+  display: flex; align-items: center; gap: 16px; margin-bottom: 24px;
+  padding: 18px; background: var(--ink3); border-radius: var(--r);
+}
+.avatar {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold), var(--blue));
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--serif); font-size: 22px; color: #fff; font-weight: 600;
+  flex-shrink: 0;
+}
+.avatar-info h4 { font-size: 16px; color: var(--white); margin-bottom: 2px; }
+.avatar-info p  { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+/* ── ACTIVITY LOG ── */
+.activity-list { display: flex; flex-direction: column; gap: 8px; }
+.activity-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 16px; background: var(--ink3);
+  border-radius: var(--r); border: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+.activity-item:hover { border-color: var(--border); }
+.activity-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.dot-success { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.dot-warn    { background: var(--gold);  box-shadow: 0 0 6px var(--gold); }
+.dot-fail    { background: var(--red);   box-shadow: 0 0 6px var(--red); }
+
+.activity-text { flex: 1; }
+.activity-text strong { font-size: 13px; color: var(--white); display: block; margin-bottom: 1px; }
+.activity-text span   { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.activity-ip { font-family: var(--mono); font-size: 10px; color: var(--muted); text-align: right; }
+
+/* ── JWT INSPECTOR ── */
+.jwt-display {
+  background: var(--ink); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 16px;
+  font-family: var(--mono); font-size: 11px; line-height: 1.8;
+  word-break: break-all; margin-bottom: 16px;
+}
+.jwt-header  { color: #e06c75; }
+.jwt-payload { color: #98c379; }
+.jwt-sig     { color: #61afef; }
+.jwt-dot     { color: var(--muted); }
+
+.jwt-decoded {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+}
+.jwt-section {
+  background: var(--ink3); border-radius: var(--r); padding: 14px;
+}
+.jwt-section h4 {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+  color: var(--muted); text-transform: uppercase; margin-bottom: 10px;
+}
+.jwt-row { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; font-family: var(--mono); font-size: 11px; }
+.jwt-key { color: var(--muted); }
+.jwt-val { color: var(--gold); text-align: right; }
+
+/* ── 2FA SETUP ── */
+.qr-mock {
+  width: 160px; height: 160px; margin: 20px auto;
+  background: var(--white); border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: var(--ink); text-align: center; padding: 10px;
+  font-family: var(--mono); line-height: 1.4;
+  position: relative; overflow: hidden;
+}
+.qr-grid {
+  position: absolute; inset: 8px;
+  display: grid; grid-template-columns: repeat(10,1fr); gap: 2px;
+}
+.qr-cell {
+  border-radius: 1px;
+  background: var(--ink);
+}
+
+/* ── RATE LIMIT METER ── */
+.rate-meter { margin: 16px 0; }
+.rate-bar-bg {
+  background: var(--ink3); border-radius: 100px; height: 8px; overflow: hidden;
+}
+.rate-bar-fill {
+  height: 100%; border-radius: 100px;
+  background: linear-gradient(90deg, var(--green), var(--gold));
+  transition: width 0.6s ease; width: 0%;
+}
+.rate-info {
+  display: flex; justify-content: space-between;
+  font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 6px;
+}
+
+/* ── TOGGLE SWITCH ── */
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0; border-bottom: 1px solid var(--border);
+}
+.toggle-row:last-child { border-bottom: none; }
+.toggle-label { font-size: 13px; color: var(--text); }
+.toggle-desc  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+.toggle {
+  width: 44px; height: 24px; border-radius: 100px;
+  background: var(--ink3); border: 1px solid var(--border);
+  cursor: pointer; position: relative; transition: all 0.3s; flex-shrink: 0;
+}
+.toggle.on { background: var(--gold); border-color: var(--gold); }
+.toggle::after {
+  content: ''; position: absolute;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--muted); top: 2px; left: 2px; transition: all 0.3s;
+}
+.toggle.on::after { background: #000; left: 22px; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 600px) {
+  nav { padding: 16px 20px; }
+  .auth-card { padding: 28px 22px; }
+  .profile-grid { grid-template-columns: 1fr; }
+  .jwt-decoded { grid-template-columns: 1fr; }
+  .cards-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-brand">
+      <div class="brand-lock">🔐</div>
+      AuthVault
+    </div>
+    <div class="nav-status">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">not authenticated</span>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- ── LOGIN PAGE ── -->
+    <div class="page active" id="login-page">
+      <div class="auth-card">
+        <div class="auth-eyebrow">// secure access</div>
+        <h1 class="auth-title">Welcome <em>back</em></h1>
+        <p class="auth-subtitle">Sign in to your vault. All sessions are JWT-protected with refresh token rotation.</p>
+
+        <div class="form-group">
+          <label>Email Address</label>
+          <div class="input-wrap">
+            <input type="email" id="login-email" placeholder="you@example.com" />
+          </div>
+          <div class="field-error" id="login-email-err">Please enter a valid email</div>
+        </div>
+
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-wrap">
+            <input type="password" id="login-password" placeholder="••••••••••••" />
+            <span class="input-icon" onclick="togglePw('login-password', this)">👁</span>
+          </div>
+          <div class="field-error" id="login-pw-err">Incorrect credentials</div>
+        </div>
+
+        <div class="rate-meter" id="login-rate-meter" style="display:none">
+          <div style="font-family:var(--mono);font-size:10px;color:var(--red);margin-bottom:6px">⚠ Brute-force protection active</div>
+          <div class="rate-bar-bg"><div class="rate-bar-fill" id="login-rate-fill" style="background:linear-gradient(90deg,var(--green),var(--red))"></div></div>
+          <div class="rate-info"><span id="rate-attempts">0/5 attempts</span><span id="rate-lockout"></span></div>
+        </div>
+
+        <button class="btn btn-primary" id="loginBtn" onclick="doLogin()">Sign In</button>
+        <button class="btn btn-ghost" onclick="showPage('register-page')">Create Account</button>
+
+        <div class="link-text">
+          <a onclick="showPage('forgot-page')">Forgot password?</a>
+          &nbsp;·&nbsp;
+          <a onclick="showPage('twofa-page')">Have a 2FA code?</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── REGISTER PAGE ── -->
+    <div class="page" id="register-page">
+      <div class="auth-card">
+        <div class="auth-eyebrow">// new account</div>
+        <h1 class="auth-title">Create your <em>vault</em></h1>
+        <p class="auth-subtitle">One account. Full JWT security stack — access tokens, refresh rotation, and 2FA.</p>
+
+        <div class="profile-grid" style="margin-bottom:18px">
+          <div class="form-group" style="margin:0">
+            <label>First Name</label>
+            <input type="text" id="reg-first" placeholder="Gaurav" />
+            <div class="field-error" id="reg-first-err">Required</div>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Last Name</label>
+            <input type="text" id="reg-last" placeholder="Kumar" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="reg-email" placeholder="you@example.com" />
+          <div class="field-error" id="reg-email-err">Enter a valid email</div>
+        </div>
+
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-wrap">
+            <input type="password" id="reg-password" placeholder="••••••••••••" oninput="checkStrength(this.value)" />
+            <span class="input-icon" onclick="togglePw('reg-password', this)">👁</span>
+          </div>
+          <div class="pw-strength">
+            <div class="pw-bars">
+              <div class="pw-bar" id="bar1"></div>
+              <div class="pw-bar" id="bar2"></div>
+              <div class="pw-bar" id="bar3"></div>
+              <div class="pw-bar" id="bar4"></div>
+            </div>
+            <div class="pw-label" id="pw-label">Enter a password</div>
+          </div>
+          <div class="field-error" id="reg-pw-err">Password too weak (min 8 chars, 1 number, 1 symbol)</div>
+        </div>
+
+        <div class="form-group">
+          <label>Confirm Password</label>
+          <div class="input-wrap">
+            <input type="password" id="reg-confirm" placeholder="••••••••••••" />
+          </div>
+          <div class="field-error" id="reg-confirm-err">Passwords don't match</div>
+        </div>
+
+        <button class="btn btn-primary" onclick="doRegister()">Create Account</button>
+        <button class="btn btn-ghost" onclick="showPage('login-page')">Back to Sign In</button>
+      </div>
+    </div>
+
+    <!-- ── 2FA PAGE ── -->
+    <div class="page" id="twofa-page">
+      <div class="auth-card">
+        <div class="auth-eyebrow">// two-factor auth</div>
+        <h1 class="auth-title">Verify <em>identity</em></h1>
+        <p class="auth-subtitle">Enter the 6-digit code from your authenticator app. Code refreshes every 30 seconds.</p>
+
+        <div class="otp-wrap">
+          <input class="otp-input" maxlength="1" type="tel" id="otp1" oninput="otpNext(this, 'otp2')" />
+          <input class="otp-input" maxlength="1" type="tel" id="otp2" oninput="otpNext(this, 'otp3')" />
+          <input class="otp-input" maxlength="1" type="tel" id="otp3" oninput="otpNext(this, 'otp4')" />
+          <input class="otp-input" maxlength="1" type="tel" id="otp4" oninput="otpNext(this, 'otp5')" />
+          <input class="otp-input" maxlength="1" type="tel" id="otp5" oninput="otpNext(this, 'otp6')" />
+          <input class="otp-input" maxlength="1" type="tel" id="otp6" oninput="otpSubmit(this)" />
+        </div>
+
+        <div class="otp-timer">Code expires in <span id="otp-countdown">30</span>s</div>
+
+        <button class="btn btn-primary" onclick="verify2FA()">Verify Code</button>
+        <button class="btn btn-ghost" onclick="showPage('login-page')">← Back</button>
+
+        <div class="link-text">
+          Demo: enter any 6 digits — use <a onclick="fillDemoOTP()">123456</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FORGOT PASSWORD ── -->
+    <div class="page" id="forgot-page">
+      <div class="auth-card">
+        <div class="auth-eyebrow">// password reset</div>
+        <h1 class="auth-title">Reset your <em>key</em></h1>
+        <p class="auth-subtitle">Enter your email and we'll send a signed, expiring reset link. Valid for 15 minutes only.</p>
+
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="reset-email" placeholder="you@example.com" />
+        </div>
+
+        <button class="btn btn-primary" onclick="doReset()">Send Reset Link</button>
+        <button class="btn btn-ghost" onclick="showPage('login-page')">← Back to Sign In</button>
+      </div>
+    </div>
+
+    <!-- ── DASHBOARD ── -->
+    <div class="page" id="dashboard-page">
+
+      <div class="dash-header">
+        <div>
+          <div class="dash-welcome">Good to see you, <em id="dash-name">Gaurav</em> 👋</div>
+          <div class="dash-meta" id="dash-meta">Last login · just now · 127.0.0.1</div>
+        </div>
+        <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+      </div>
+
+      <!-- Security Cards -->
+      <div class="cards-grid">
+        <div class="sec-card" style="animation-delay:0s">
+          <div class="sec-card-icon icon-gold">🔑</div>
+          <h3>Access Token</h3>
+          <p>JWT signed with HS256. Expires in 15 minutes to minimise exposure window.</p>
+          <div class="sec-badge badge-active">● ACTIVE · 14:32 left</div>
+        </div>
+        <div class="sec-card" style="animation-delay:0.06s">
+          <div class="sec-card-icon icon-blue">🔄</div>
+          <h3>Refresh Token</h3>
+          <p>HttpOnly cookie. Rotates on every use — old tokens are immediately blacklisted.</p>
+          <div class="sec-badge badge-enabled">● ROTATION ON</div>
+        </div>
+        <div class="sec-card" style="animation-delay:0.12s">
+          <div class="sec-card-icon icon-green">🛡️</div>
+          <h3>Rate Limiting</h3>
+          <p>5 attempts per 15 min per IP. Progressive delays prevent brute-force attacks.</p>
+          <div class="sec-badge badge-enabled">● ACTIVE</div>
+        </div>
+        <div class="sec-card" style="animation-delay:0.18s">
+          <div class="sec-card-icon icon-red">📲</div>
+          <h3>Two-Factor Auth</h3>
+          <p>TOTP-based second factor via authenticator app. Adds a critical layer on top of passwords.</p>
+          <div class="sec-badge" id="twofa-badge">● DISABLED</div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('profile')">Profile</button>
+        <button class="tab-btn" onclick="switchTab('jwt')">JWT Inspector</button>
+        <button class="tab-btn" onclick="switchTab('activity')">Activity Log</button>
+        <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
+      </div>
+
+      <!-- Profile Tab -->
+      <div class="tab-panel active" id="tab-profile">
+        <div class="avatar-row">
+          <div class="avatar" id="dash-avatar">GK</div>
+          <div class="avatar-info">
+            <h4 id="dash-fullname">Gaurav Kumar</h4>
+            <p id="dash-email-display">gaurav@example.com</p>
+          </div>
+        </div>
+        <div class="profile-grid">
+          <div class="form-group">
+            <label>First Name</label>
+            <input type="text" id="profile-first" value="Gaurav" />
+          </div>
+          <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" id="profile-last" value="Kumar" />
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="profile-email" value="gaurav@example.com" />
+          </div>
+          <div class="form-group">
+            <label>Phone</label>
+            <input type="tel" id="profile-phone" placeholder="+91 XXXXX XXXXX" />
+          </div>
+        </div>
+        <button class="btn btn-primary" style="max-width:200px" onclick="saveProfile()">Save Changes</button>
+      </div>
+
+      <!-- JWT Inspector Tab -->
+      <div class="tab-panel" id="tab-jwt">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Live view of your current access token — decoded in-browser. The signature is never transmitted to untrusted clients.</p>
+        <div class="jwt-display" id="jwt-display"></div>
+        <div class="jwt-decoded">
+          <div class="jwt-section">
+            <h4>Header</h4>
+            <div class="jwt-row"><span class="jwt-key">alg</span><span class="jwt-val">HS256</span></div>
+            <div class="jwt-row"><span class="jwt-key">typ</span><span class="jwt-val">JWT</span></div>
+          </div>
+          <div class="jwt-section">
+            <h4>Payload</h4>
+            <div class="jwt-row"><span class="jwt-key">sub</span><span class="jwt-val" id="jwt-sub">usr_001</span></div>
+            <div class="jwt-row"><span class="jwt-key">email</span><span class="jwt-val" id="jwt-email">gaurav@...</span></div>
+            <div class="jwt-row"><span class="jwt-key">role</span><span class="jwt-val">user</span></div>
+            <div class="jwt-row"><span class="jwt-key">iat</span><span class="jwt-val" id="jwt-iat">–</span></div>
+            <div class="jwt-row"><span class="jwt-key">exp</span><span class="jwt-val" id="jwt-exp">–</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity Log Tab -->
+      <div class="tab-panel" id="tab-activity">
+        <div class="activity-list" id="activity-list"></div>
+      </div>
+
+      <!-- Settings Tab -->
+      <div class="tab-panel" id="tab-settings">
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Two-Factor Authentication</div>
+            <div class="toggle-desc">Require TOTP code on every sign-in</div>
+          </div>
+          <div class="toggle" id="toggle-2fa" onclick="toggle2FA(this)"></div>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Login Notifications</div>
+            <div class="toggle-desc">Email alert for each new session</div>
+          </div>
+          <div class="toggle on" onclick="toggleSwitch(this)"></div>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Refresh Token Rotation</div>
+            <div class="toggle-desc">Invalidate old tokens on refresh</div>
+          </div>
+          <div class="toggle on" onclick="toggleSwitch(this)"></div>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Strict IP Binding</div>
+            <div class="toggle-desc">Invalidate session on IP change</div>
+          </div>
+          <div class="toggle" onclick="toggleSwitch(this)"></div>
+        </div>
+
+        <div style="margin-top:28px;padding-top:24px;border-top:1px solid var(--border)">
+          <div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:6px">2FA Setup</div>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:16px">Scan this QR code with Google Authenticator or Authy.</p>
+          <div class="qr-mock" id="qr-code">
+            <div class="qr-grid" id="qr-grid"></div>
+          </div>
+          <p style="text-align:center;font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:8px">Secret: JBSWY3DPEHPK3PXP</p>
+        </div>
+
+        <div style="margin-top:28px;padding-top:24px;border-top:1px solid var(--border)">
+          <button class="btn btn-danger" style="max-width:240px" onclick="revokeAllSessions()">Revoke All Sessions</button>
+        </div>
+      </div>
+
+    </div><!-- /dashboard -->
+
+  </main>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────
+const state = {
+  loginAttempts: 0,
+  maxAttempts: 5,
+  lockoutUntil: null,
+  user: null,
+  accessToken: null,
+  twoFAEnabled: false,
+  tokenIat: null,
+  tokenExp: null,
+};
+
+const DEMO_USERS = [
+  { email: 'gaurav@example.com', password: 'Test@1234', name: 'Gaurav', last: 'Kumar' }
+];
+
+// ── MOCK JWT ──────────────────────────────────────────────────────────────
+function b64(obj) {
+  return btoa(JSON.stringify(obj)).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+}
+function mockJWT(email) {
+  const now = Math.floor(Date.now()/1000);
+  const exp = now + 900; // 15 min
+  const header  = b64({ alg:'HS256', typ:'JWT' });
+  const payload = b64({ sub:'usr_'+Math.random().toString(36).slice(2,7), email, role:'user', iat:now, exp });
+  const sig     = b64({ sig: Array.from({length:12}, ()=>Math.random().toString(36)[2]).join('') });
+  state.tokenIat = now; state.tokenExp = exp;
+  return `${header}.${payload}.${sig}`;
+}
+
+// ── PAGES ─────────────────────────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── AUTH FLOW ─────────────────────────────────────────────────────────────
+function doLogin() {
+  clearErrors();
+  const email = v('login-email');
+  const pw    = v('login-password');
+  let ok = true;
+
+  if (!email || !/\S+@\S+\.\S+/.test(email)) { showErr('login-email-err'); ok=false; }
+
+  // Brute force check
+  if (state.lockoutUntil && Date.now() < state.lockoutUntil) {
+    const secs = Math.ceil((state.lockoutUntil - Date.now())/1000);
+    toast(`🔒 Locked out. Try again in ${secs}s`, 'error'); return;
+  }
+
+  if (!ok) return;
+
+  setLoading('loginBtn', true);
+
+  setTimeout(() => {
+    setLoading('loginBtn', false);
+    const user = DEMO_USERS.find(u => u.email === email && u.password === pw);
+
+    if (!user) {
+      state.loginAttempts++;
+      updateRateMeter();
+      if (state.loginAttempts >= state.maxAttempts) {
+        state.lockoutUntil = Date.now() + 60000;
+        toast('🔒 Too many attempts — locked for 60 seconds', 'error');
+        startLockoutTimer();
+      } else {
+        showErr('login-pw-err', `Invalid credentials (${state.loginAttempts}/${state.maxAttempts})`);
+        toast(`Wrong credentials — ${state.maxAttempts - state.loginAttempts} attempts left`, 'error');
+      }
+      return;
+    }
+
+    state.loginAttempts = 0;
+    state.user = user;
+
+    if (state.twoFAEnabled) {
+      showPage('twofa-page'); startOTPTimer();
+      toast('2FA required — check your authenticator', 'info'); return;
+    }
+
+    completeLogin(user);
+  }, 900);
+}
+
+function completeLogin(user) {
+  state.accessToken = mockJWT(user.email);
+  setAuthStatus(true, user.email);
+  loadDashboard(user);
+  showPage('dashboard-page');
+  toast(`Welcome back, ${user.name}!`, 'success');
+}
+
+function doRegister() {
+  clearErrors();
+  const first   = v('reg-first');
+  const email   = v('reg-email');
+  const pw      = v('reg-password');
+  const confirm = v('reg-confirm');
+  let ok = true;
+
+  if (!first) { showErr('reg-first-err'); ok=false; }
+  if (!email || !/\S+@\S+\.\S+/.test(email)) { showErr('reg-email-err'); ok=false; }
+  if (!isStrongPw(pw)) { showErr('reg-pw-err'); ok=false; }
+  if (pw !== confirm) { showErr('reg-confirm-err'); ok=false; }
+  if (!ok) return;
+
+  const last = v('reg-last');
+  const newUser = { email, password: pw, name: first, last };
+  DEMO_USERS.push(newUser);
+  state.user = newUser;
+  state.accessToken = mockJWT(email);
+  setAuthStatus(true, email);
+  loadDashboard(newUser);
+  showPage('dashboard-page');
+  toast('Account created successfully!', 'success');
+}
+
+function verify2FA() {
+  const code = ['otp1','otp2','otp3','otp4','otp5','otp6'].map(id => v(id)).join('');
+  if (code.length < 6) { toast('Enter all 6 digits', 'error'); return; }
+  completeLogin(state.user);
+}
+
+function fillDemoOTP() {
+  ['otp1','otp2','otp3','otp4','otp5','otp6'].forEach((id,i) => {
+    document.getElementById(id).value = '123456'[i];
+  });
+}
+
+function doReset() {
+  const email = v('reset-email');
+  if (!email) { toast('Enter your email address', 'error'); return; }
+  toast('Reset link sent (expires 15 min) ✓', 'success');
+  setTimeout(() => showPage('login-page'), 1500);
+}
+
+function doLogout() {
+  state.user = null; state.accessToken = null;
+  setAuthStatus(false); showPage('login-page');
+  toast('Signed out securely', 'info');
+}
+
+function revokeAllSessions() {
+  toast('All sessions revoked — signed out everywhere', 'success');
+  setTimeout(() => doLogout(), 1200);
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────
+function loadDashboard(user) {
+  const fullname = `${user.name} ${user.last}`;
+  document.getElementById('dash-name').textContent = user.name;
+  document.getElementById('dash-fullname').textContent = fullname;
+  document.getElementById('dash-email-display').textContent = user.email;
+  document.getElementById('dash-avatar').textContent = (user.name[0]+(user.last||'')[0]||'').toUpperCase();
+  document.getElementById('profile-first').value = user.name;
+  document.getElementById('profile-last').value  = user.last||'';
+  document.getElementById('profile-email').value = user.email;
+  document.getElementById('dash-meta').textContent = `Last login · just now · 127.0.0.1`;
+
+  // JWT inspector
+  renderJWT();
+  renderActivity();
+  generateQR();
+  switchTab('profile');
+}
+
+function renderJWT() {
+  if (!state.accessToken) return;
+  const parts = state.accessToken.split('.');
+  document.getElementById('jwt-display').innerHTML =
+    `<span class="jwt-header">${parts[0]}</span><span class="jwt-dot">.</span><span class="jwt-payload">${parts[1]}</span><span class="jwt-dot">.</span><span class="jwt-sig">${parts[2]}</span>`;
+
+  const email = state.user?.email || '';
+  document.getElementById('jwt-email').textContent = email.length > 14 ? email.slice(0,14)+'…' : email;
+  document.getElementById('jwt-sub').textContent   = 'usr_'+Math.random().toString(36).slice(2,7);
+  document.getElementById('jwt-iat').textContent   = new Date(state.tokenIat*1000).toLocaleTimeString();
+  document.getElementById('jwt-exp').textContent   = new Date(state.tokenExp*1000).toLocaleTimeString();
+}
+
+function renderActivity() {
+  const logs = [
+    { type:'success', event:'Login successful', ip:'127.0.0.1',     time:'Just now' },
+    { type:'success', event:'Token refreshed',  ip:'127.0.0.1',     time:'2 min ago' },
+    { type:'warn',    event:'New device detected', ip:'192.168.1.5', time:'Yesterday' },
+    { type:'fail',    event:'Failed login attempt', ip:'45.33.91.22',time:'2 days ago' },
+    { type:'success', event:'Password changed',  ip:'127.0.0.1',    time:'Last week' },
+  ];
+  document.getElementById('activity-list').innerHTML = logs.map(l => `
+    <div class="activity-item">
+      <div class="activity-dot dot-${l.type}"></div>
+      <div class="activity-text">
+        <strong>${l.event}</strong>
+        <span>${l.time}</span>
+      </div>
+      <div class="activity-ip">${l.ip}</div>
+    </div>`).join('');
+}
+
+function generateQR() {
+  const grid = document.getElementById('qr-grid');
+  const cells = Array.from({length:100}, () =>
+    `<div class="qr-cell" style="opacity:${Math.random()>0.45?1:0}"></div>`).join('');
+  grid.innerHTML = cells;
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    const names = ['profile','jwt','activity','settings'];
+    b.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────────────────
+function toggle2FA(el) {
+  el.classList.toggle('on');
+  state.twoFAEnabled = el.classList.contains('on');
+  const badge = document.getElementById('twofa-badge');
+  if (state.twoFAEnabled) {
+    badge.textContent = '● ENABLED';
+    badge.className = 'sec-badge badge-enabled';
+    toast('2FA enabled — will apply on next login', 'success');
+  } else {
+    badge.textContent = '● DISABLED';
+    badge.className = 'sec-badge badge-disabled';
+    toast('2FA disabled', 'info');
+  }
+}
+
+function toggleSwitch(el) { el.classList.toggle('on'); }
+
+function saveProfile() {
+  const first = document.getElementById('profile-first').value;
+  const last  = document.getElementById('profile-last').value;
+  const email = document.getElementById('profile-email').value;
+  if (state.user) { state.user.name = first; state.user.last = last; state.user.email = email; }
+  document.getElementById('dash-name').textContent     = first;
+  document.getElementById('dash-fullname').textContent = `${first} ${last}`;
+  document.getElementById('dash-email-display').textContent = email;
+  document.getElementById('dash-avatar').textContent = (first[0]+(last||'')[0]||'').toUpperCase();
+  toast('Profile updated ✓', 'success');
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────
+function v(id) { return document.getElementById(id)?.value.trim() || ''; }
+
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (msg) el.textContent = msg;
+  el.classList.add('show');
+}
+
+function clearErrors() {
+  document.querySelectorAll('.field-error').forEach(e => e.classList.remove('show'));
+}
+
+function setLoading(btnId, on) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.classList.toggle('loading', on);
+  btn.textContent = on ? '⟳ Verifying…' : 'Sign In';
+}
+
+function setAuthStatus(authenticated, email='') {
+  const dot  = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  dot.classList.toggle('online', authenticated);
+  text.textContent = authenticated ? email : 'not authenticated';
+}
+
+function toast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast-${type} show`;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+function togglePw(id, icon) {
+  const inp = document.getElementById(id);
+  if (inp.type === 'password') { inp.type = 'text'; icon.textContent = '🙈'; }
+  else { inp.type = 'password'; icon.textContent = '👁'; }
+}
+
+function isStrongPw(pw) {
+  return pw.length >= 8 && /[0-9]/.test(pw) && /[^a-zA-Z0-9]/.test(pw);
+}
+
+function checkStrength(pw) {
+  const bars  = [1,2,3,4].map(i => document.getElementById(`bar${i}`));
+  const label = document.getElementById('pw-label');
+  const colors = ['','#e05555','#f5a623','#5b8dee','#4caf85'];
+  const labels = ['','Weak','Fair','Good','Strong'];
+  let score = 0;
+  if (pw.length >= 6) score++;
+  if (pw.length >= 10) score++;
+  if (/[0-9]/.test(pw) && /[A-Z]/.test(pw)) score++;
+  if (/[^a-zA-Z0-9]/.test(pw)) score++;
+  bars.forEach((b,i) => b.style.background = i < score ? colors[score] : 'var(--border)');
+  label.textContent = pw ? labels[score] : 'Enter a password';
+  label.style.color = colors[score] || 'var(--muted)';
+}
+
+function updateRateMeter() {
+  const meter = document.getElementById('login-rate-meter');
+  const fill  = document.getElementById('login-rate-fill');
+  const att   = document.getElementById('rate-attempts');
+  meter.style.display = 'block';
+  fill.style.width = `${(state.loginAttempts / state.maxAttempts) * 100}%`;
+  att.textContent = `${state.loginAttempts}/${state.maxAttempts} attempts`;
+}
+
+function startLockoutTimer() {
+  const el = document.getElementById('rate-lockout');
+  const iv = setInterval(() => {
+    const rem = Math.ceil((state.lockoutUntil - Date.now())/1000);
+    if (rem <= 0) { clearInterval(iv); el.textContent=''; state.loginAttempts=0; updateRateMeter(); return; }
+    el.textContent = `Locked ${rem}s`;
+  }, 1000);
+}
+
+function otpNext(el, nextId) {
+  if (el.value.length === 1) document.getElementById(nextId)?.focus();
+}
+function otpSubmit(el) { if (el.value.length === 1) verify2FA(); }
+
+let otpInterval;
+function startOTPTimer() {
+  let t = 30;
+  clearInterval(otpInterval);
+  otpInterval = setInterval(() => {
+    document.getElementById('otp-countdown').textContent = --t;
+    if (t <= 0) { clearInterval(otpInterval); startOTPTimer(); }
+  }, 1000);
+}
+
+// Enter key
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const active = document.querySelector('.page.active')?.id;
+  if (active === 'login-page')    doLogin();
+  if (active === 'register-page') doRegister();
+  if (active === 'forgot-page')   doReset();
+});
+</script>
+</body>
+</html>
 
